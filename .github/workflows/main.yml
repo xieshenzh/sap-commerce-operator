@@ -10,8 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      REGISTRY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      REGISTRY_PASSWORD: ${{ secrets.QUAY_TOKEN }}
       OPERATOR_IMAGE: quay.io/xiezhang7/hybris-operator
       OPERATOR_TAG: 0.1
       BUNDLE_IMAGE: quay.io/xiezhang7/hybris-bundle
@@ -49,19 +47,19 @@ jobs:
         run: |
           curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
           chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
-      - name: Build and Push Operator
-        run: |
-          export PATH=$PATH:/usr/local/kubebuilder/bin
-          make docker-build docker-push IMG=${OPERATOR_IMAGE}:${OPERATOR_TAG}
       - name: Podman Setup
         run: |
-          podman login -u ${REGISTRY_USERNAME} -p ${REGISTRY_PASSWORD} quay.io
+          podman login -u ${{ secrets.QUAY_USERNAME }} -p ${{ secrets.QUAY_TOKEN }} quay.io
       - name: Install OPM
         env:
           RELEASE_VERSION: v1.13.8
         run: |
           curl -LO https://github.com/operator-framework/operator-registry/releases/download/${RELEASE_VERSION}/linux-amd64-opm
           chmod +x linux-amd64-opm && sudo mkdir -p /usr/local/bin/ && sudo cp linux-amd64-opm /usr/local/bin/opm && rm linux-amd64-opm
+      - name: Build and Push Operator
+        run: |
+          export PATH=$PATH:/usr/local/kubebuilder/bin
+          make docker-build docker-push IMG=${OPERATOR_IMAGE}:${OPERATOR_TAG}
       - name: Build and Push Bundle
         run: |
           make bundle
