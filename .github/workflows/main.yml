@@ -25,8 +25,8 @@ jobs:
       - uses: docker/login-action@v1
         with:
           registry: quay.io
-          username: $REGISTRY_USERNAME
-          password: $REGISTRY_PASSWORD
+          username: ${{ REGISTRY_USERNAME }}
+          password: ${{ REGISTRY_PASSWORD }}
       - uses: docker/setup-buildx-action@v1
         with:
           version: latest
@@ -49,7 +49,7 @@ jobs:
           make docker-build docker-push IMG=${OPERATOR_IMAGE}:${OPERATOR_TAG}
       - name: Podman Setup
         run: |
-          podman login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD quay.io
+          podman login -u ${REGISTRY_USERNAME} -p ${REGISTRY_PASSWORD} quay.io
       - name: Install OPM
         env:
           RELEASE_VERSION: v1.13.8
