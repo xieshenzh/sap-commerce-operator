@@ -3,9 +3,21 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      REGISTRY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.QUAY_TOKEN }}
+      OPERATOR_IMAGE: quay.io/xiezhang7/hybris-operator
+      OPERATOR_TAG: 0.1
+      BUNDLE_IMAGE: quay.io/xiezhang7/hybris-bundle
+      BUNDLE_TAG: 0.1
+      INDEX_IMAGE: quay.io/xiezhang7/hybris-index
+      INDEX_TAG: 0.1
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -13,8 +25,8 @@ jobs:
       - uses: docker/login-action@v1
         with:
           registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_TOKEN }}
+          username: $REGISTRY_USERNAME
+          password: $REGISTRY_PASSWORD
       - uses: docker/setup-buildx-action@v1
         with:
           version: latest
@@ -31,11 +43,26 @@ jobs:
         run: |
           curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
           chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
-      - name: Build and Push
-        env:
-          IMAGE: quay.io/redhat-sap-cop/hybris-operator
-          TAG: 0.1
+      - name: Build and Push Operator
         run: |
           export PATH=$PATH:/usr/local/kubebuilder/bin
-          make docker-build docker-push IMG=${IMAGE}:${TAG} 
+          make docker-build docker-push IMG=${OPERATOR_IMAGE}:${OPERATOR_TAG}
+      - name: Podman Setup
+        run: |
+          podman login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD quay.io
+      - name: Install OPM
+        env:
+          RELEASE_VERSION: v1.13.8
+        run: |
+          curl -LO https://github.com/operator-framework/operator-registry/releases/download/${RELEASE_VERSION}/linux-amd64-opm
+          chmod +x linux-amd64-opm && sudo mkdir -p /usr/local/bin/ && sudo cp linux-amd64-opm /usr/local/bin/opm && rm linux-amd64-opm
+      - name: Build and Push Bundle
+        run: |
+          make bundle
+          podman build -t ${BUNDLE_IMAGE}:${BUNDLE_TAG} -f bundle.Dockerfile .
+          podman push ${BUNDLE_IMAGE}:${BUNDLE_TAG}
+      - name: Build and Push Index
+        run: |
+          opm index add --bundles ${BUNDLE_IMAGE}:${BUNDLE_TAG} --tag ${INDEX_IMAGE}:${INDEX_TAG}
+          podman push ${INDEX_IMAGE}:${INDEX_TAG}
       
