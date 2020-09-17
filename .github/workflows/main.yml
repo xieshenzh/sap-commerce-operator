@@ -47,9 +47,6 @@ jobs:
         run: |
           curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
           chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
-      - name: Podman Setup
-        run: |
-          podman login -u ${{ secrets.QUAY_USERNAME }} -p ${{ secrets.QUAY_TOKEN }} quay.io
       - name: Install OPM
         env:
           RELEASE_VERSION: v1.13.8
@@ -63,10 +60,10 @@ jobs:
       - name: Build and Push Bundle
         run: |
           make bundle
-          podman build -t ${BUNDLE_IMAGE}:${BUNDLE_TAG} -f bundle.Dockerfile .
-          podman push ${BUNDLE_IMAGE}:${BUNDLE_TAG}
+          docker build -t ${BUNDLE_IMAGE}:${BUNDLE_TAG} -f bundle.Dockerfile .
+          docker push ${BUNDLE_IMAGE}:${BUNDLE_TAG}
       - name: Build and Push Index
         run: |
-          opm index add --bundles ${BUNDLE_IMAGE}:${BUNDLE_TAG} --tag ${INDEX_IMAGE}:${INDEX_TAG}
-          podman push ${INDEX_IMAGE}:${INDEX_TAG}
+          opm index add --bundles ${BUNDLE_IMAGE}:${BUNDLE_TAG} --tag ${INDEX_IMAGE}:${INDEX_TAG} --container-tool docker
+          docker push ${INDEX_IMAGE}:${INDEX_TAG}
       
