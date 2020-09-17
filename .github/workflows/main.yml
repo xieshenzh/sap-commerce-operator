@@ -19,14 +19,20 @@ jobs:
       INDEX_IMAGE: quay.io/xiezhang7/hybris-index
       INDEX_TAG: 0.1
     steps:
+      - name: Env
+        run: |
+          echo ${REGISTRY_USERNAME}
+          echo ${OPERATOR_IMAGE}
+          echo ${BUNDLE_IMAGE}
+          echo ${INDEX_IMAGE}
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.13.0'
       - uses: docker/login-action@v1
         with:
           registry: quay.io
-          username: ${{ REGISTRY_USERNAME }}
-          password: ${{ REGISTRY_PASSWORD }}
+          username: ${REGISTRY_USERNAME}
+          password: ${REGISTRY_PASSWORD}
       - uses: docker/setup-buildx-action@v1
         with:
           version: latest
